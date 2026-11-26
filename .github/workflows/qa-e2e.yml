@@ -1,0 +1,98 @@
+name: QA E2E Demoblaze (POM + BDD + Allure)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      marker:
+        description: "Marker de pytest a ejecutar (all, HappyPath, NegativePath, smoke, regression)"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - HappyPath
+          - NegativePath
+          - smoke
+          - regression
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-tests:
+    name: Ejecutar Suite E2E y Generar Reporte Allure
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Configurar Google Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Instalar dependencias del proyecto
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Validar coleccion de escenarios BDD
+        run: pytest --collect-only -o addopts=""
+
+      - name: Ejecutar pruebas E2E con pytest
+        env:
+          HEADLESS: "true"
+          SCREENSHOT_MODE: "every_step"
+          SAVE_SCREENSHOTS_LOCAL: "true"
+          TEST_USERNAME: ${{ vars.TEST_USERNAME || 'jeanxyz' }}
+          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD || 'JeanDemo123!' }}
+        run: |
+          MARKER="${{ github.event.inputs.marker || 'all' }}"
+          if [ "$MARKER" = "all" ]; then
+            pytest
+          else
+            pytest -m "$MARKER"
+          fi
+
+      - name: Instalar Allure CLI
+        if: always()
+        run: npm install -g allure-commandline --no-audit --no-fund
+
+      - name: Generar reporte HTML unico de Allure
+        if: always()
+        run: allure generate --single-file reports/allure-results -o reports/allure-report --clean
+
+      - name: Publicar reporte Allure HTML como Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-html
+          path: reports/allure-report/
+          retention-days: 30
+
+      - name: Publicar resultados crudos de Allure como Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-raw
+          path: reports/allure-results/
+          retention-days: 14
+
+      - name: Publicar capturas de pantalla como Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-evidencia
+          path: reports/screenshots/
+          if-no-files-found: ignore
+          retention-days: 14
