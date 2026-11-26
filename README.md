@@ -127,7 +127,7 @@ Start-Process "reports\allure-report\index.html"
 
 ---
 
-## CI/CD con GitHub Actions
+## CI/CD y Reporte Web Público (GitHub Actions + GitHub Pages)
 
 El workflow [`.github/workflows/qa-e2e.yml`](.github/workflows/qa-e2e.yml) se ejecuta automáticamente en cada `push` o `pull_request` hacia `main` (y manualmente desde la pestaña **Actions** eligiendo el marker deseado):
 
@@ -135,7 +135,6 @@ El workflow [`.github/workflows/qa-e2e.yml`](.github/workflows/qa-e2e.yml) se ej
 2. Valida la colección BDD (`pytest --collect-only`).
 3. Ejecuta la suite en modo `HEADLESS=true` generando capturas `every_step`.
 4. Genera el reporte `single-file` de Allure (`reports/allure-report/index.html`) incluso si algún escenario falla (`if: always()`).
-5. Publica **3 Artifacts** descargables en la ejecución del workflow:
-   - `allure-report-html`: reporte HTML único listo para abrir en cualquier navegador.
-   - `allure-results-raw`: JSONs y adjuntos crudos de Allure.
-   - `screenshots-evidencia`: capturas `.png` ordenadas por escenario.
+5. Publica **3 Artifacts** descargables (`allure-report-html`, `allure-results-raw`, `screenshots-evidencia`).
+6. Despliega automáticamente el reporte HTML en **GitHub Pages** para verlo en la web sin descargar nada:
+   - **URL pública del reporte:** `https://salasjean.github.io/nttdata_qa-automation-demoblaze-selenium-bdd/` *(requiere habilitar una única vez en GitHub: `Settings → Pages → Source: GitHub Actions`)*.

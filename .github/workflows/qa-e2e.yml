@@ -21,6 +21,12 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   e2e-tests:
@@ -96,3 +102,28 @@ jobs:
           path: reports/screenshots/
           if-no-files-found: ignore
           retention-days: 14
+
+  deploy-report:
+    name: Publicar Reporte Allure en GitHub Pages
+    needs: e2e-tests
+    if: always() && github.event_name != 'pull_request' && needs.e2e-tests.result != 'cancelled'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Descargar reporte Allure HTML
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-report-html
+          path: allure-report
+
+      - name: Empaquetar reporte para GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: allure-report
+
+      - name: Desplegar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
